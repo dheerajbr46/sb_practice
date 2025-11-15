@@ -282,8 +282,9 @@ Each microservice has its own configuration file in the config repository:
 The Config Server supports encrypted properties using the key defined in `application.yml`:
 ```yaml
 encrypt:
-  key: "45D81EC1EF61DF9AD8D3E5BB397F9"
+  key: "****************************"
 ```
+> **Note:** Replace with your own encryption key in production.
 
 ## 💾 Database Setup
 

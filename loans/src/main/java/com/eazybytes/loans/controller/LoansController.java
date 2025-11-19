@@ -13,6 +13,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -30,6 +32,8 @@ import static com.eazybytes.loans.constants.LoanConstants.*;
 @RequestMapping(path = "/api/loans", produces = {MediaType.APPLICATION_JSON_VALUE})
 @Validated
 public class LoansController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoansController.class);
 
     private final ILoansService loansService;
     private final LoansContactInfoDto cardsContactInfoDto;
@@ -90,9 +94,13 @@ public class LoansController {
     })
     @GetMapping("/fetch")
     public ResponseEntity<LoansDto> fetchLoanDetails(
+            @RequestHeader("eazybank-correlation-id")
+            String correlationId,
+
             @RequestParam
             @Pattern(regexp = "(^$|[0-9]{10})", message = "Mobile number must be 10 digits")
             String mobileNumber) {
+        LOGGER.debug("eazybank-correlation-id found: {}", correlationId);
         LoansDto loansDto = loansService.fetchLoan(mobileNumber);
         return ResponseEntity.status(HttpStatus.OK).body(loansDto);
     }

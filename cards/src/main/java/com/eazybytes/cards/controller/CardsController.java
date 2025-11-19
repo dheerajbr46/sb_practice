@@ -14,6 +14,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -32,6 +34,8 @@ import static com.eazybytes.cards.constants.CardsConstants.STATUS_201;
 @RequestMapping(path = "/api/cards", produces = {MediaType.APPLICATION_JSON_VALUE})
 @Validated
 public class CardsController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(CardsController.class);
 
     private final ICardsService cardsService;
     private final CardsContactInfoDto cardsContactInfoDto;
@@ -93,9 +97,14 @@ public class CardsController {
     })
     @GetMapping("/fetch")
     public ResponseEntity<CardsDto> fetchCardDetails(
+            @RequestHeader("eazybank-correlation-id")
+            String correlationId,
+
             @RequestParam
             @Pattern(regexp = "(^$|[0-9]{10})", message = "Mobile number must be 10 digits")
             String mobileNumber) {
+        LOGGER.debug("eazybank-correlation-id found: {}", correlationId);
+
         CardsDto cardsDto = cardsService.fetchCard(mobileNumber);
         return ResponseEntity.status(HttpStatus.OK).body(cardsDto);
     }

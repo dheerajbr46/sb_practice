@@ -117,7 +117,7 @@
                 <version>3.4.6</version>
                 <configuration>
                     <to>
-                        <image>dheerajbr46/${project.artifactId}:s8</image>
+                        <image>dheerajbr46/${project.artifactId}:s10</image>
                     </to>
                 </configuration>
             </plugin>

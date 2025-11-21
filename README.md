@@ -5,6 +5,7 @@ A cloud-native microservices architecture for a banking application built with S
 ## 📋 Table of Contents
 
 - [Overview](#overview)
+- [Key Features](#key-features)
 - [Architecture](#architecture)
 - [Microservices](#microservices)
 - [Technologies Used](#technologies-used)
@@ -15,7 +16,17 @@ A cloud-native microservices architecture for a banking application built with S
 - [Configuration Management](#configuration-management)
 - [Database Setup](#database-setup)
 - [Environment Profiles](#environment-profiles)
-- [Monitoring and Health Checks](#monitoring-and-health-checks)
+- [Monitoring and Observability](#monitoring-and-observability)
+- [Observability Features](#observability-features)
+- [Project Structure](#project-structure)
+- [Security Considerations](#security-considerations)
+- [Troubleshooting](#troubleshooting)
+- [Development Guidelines](#development-guidelines)
+- [Contributing](#contributing)
+- [Learning & Inspiration](#learning--inspiration)
+- [License](#license)
+- [Author](#author)
+- [Support](#support)
 
 ## 🎯 Overview
 
@@ -24,7 +35,45 @@ EazyBank is a modern microservices-based banking platform that provides comprehe
 - Credit card services
 - Loan management
 
-The project demonstrates enterprise-grade microservices architecture patterns including centralized configuration, containerization, and health monitoring.
+The project demonstrates enterprise-grade microservices architecture patterns including centralized configuration, service discovery, API gateway, containerization, and comprehensive observability.
+
+## ✨ Key Features
+
+### Microservices Architecture
+- ✅ **Independent Services** - Accounts, Cards, and Loans as separate deployable units
+- ✅ **Service Discovery** - Netflix Eureka for automatic service registration and discovery
+- ✅ **API Gateway** - Spring Cloud Gateway for unified entry point and routing
+- ✅ **Centralized Configuration** - Spring Cloud Config Server with Git backend
+
+### Observability & Monitoring
+- ✅ **Distributed Logging** - Grafana Loki with distributed architecture (Read/Write/Backend)
+- ✅ **Metrics Collection** - Prometheus with Spring Actuator integration
+- ✅ **Visualization** - Grafana dashboards for metrics and logs
+- ✅ **Log Aggregation** - Grafana Alloy for automatic Docker log collection
+- ✅ **Health Checks** - Comprehensive readiness and liveness probes
+
+### Data Management
+- ✅ **Database per Service** - Dedicated MySQL databases for each microservice
+- ✅ **JPA/Hibernate** - Object-relational mapping
+- ✅ **Automatic Schema Creation** - Database initialization on startup
+- ✅ **Data Auditing** - Track created/updated timestamps and users
+
+### DevOps & Deployment
+- ✅ **Containerization** - Docker images built with Jib (no Docker daemon required)
+- ✅ **Multi-Environment Support** - Default, QA, and Production configurations
+- ✅ **Docker Compose** - Complete stack deployment with dependencies
+- ✅ **Health-based Orchestration** - Services start based on dependency health
+
+### API & Documentation
+- ✅ **REST APIs** - RESTful endpoints following best practices
+- ✅ **OpenAPI/Swagger** - Interactive API documentation
+- ✅ **Input Validation** - Jakarta Bean Validation
+- ✅ **Exception Handling** - Global exception handling with custom error responses
+
+### Development Experience
+- ✅ **Hot Reload** - Spring DevTools for rapid development
+- ✅ **Lombok Integration** - Reduced boilerplate code
+- ✅ **Maven Build** - Dependency management and multi-module project structure
 
 ## 🏗️ Architecture
 
@@ -103,6 +152,8 @@ The system consists of four main microservices:
 - **Spring Validation** - Input validation
 - **Spring Actuator** - Production-ready monitoring
 - **Spring Cloud Config** - Centralized configuration
+- **Spring Cloud Netflix Eureka** - Service discovery
+- **Spring Cloud Gateway** - API Gateway and routing
 
 ### Database
 - **MySQL** - Relational database for all services
@@ -112,6 +163,13 @@ The system consists of four main microservices:
 - **Maven** - Build tool
 - **Jib Maven Plugin** - Containerization without Docker daemon
 - **Docker & Docker Compose** - Container orchestration
+
+### Observability & Monitoring
+- **Grafana 11.4.0** - Metrics visualization and dashboards
+- **Prometheus 3.1.0** - Metrics collection and monitoring
+- **Loki 3.1.2** - Log aggregation system
+- **Grafana Alloy 1.5.1** - Telemetry collection agent
+- **MinIO** - Object storage for Loki
 
 ### Documentation
 - **SpringDoc OpenAPI 2.8.14** - API documentation (Swagger UI)
@@ -148,13 +206,21 @@ Before running this project, ensure you have the following installed:
    CREATE DATABASE loansdb;
    ```
 
-3. **Start Config Server:**
+3. **Start services in order:**
+   
+   **Step 1: Start Config Server**
    ```bash
    cd configserver
    mvn spring-boot:run
    ```
-
-4. **Start individual microservices:**
+   
+   **Step 2: Start Eureka Server**
+   ```bash
+   cd eurekaserver
+   mvn spring-boot:run
+   ```
+   
+   **Step 3: Start Microservices**
    ```bash
    # In separate terminals
    cd accounts
@@ -166,6 +232,12 @@ Before running this project, ensure you have the following installed:
    cd loans
    mvn spring-boot:run
    ```
+   
+   **Step 4: Start Gateway Server**
+   ```bash
+   cd gatewayserver
+   mvn spring-boot:run
+   ```
 
 ### Option 2: Build JAR files
 
@@ -175,11 +247,40 @@ cd accounts && mvn clean package && cd ..
 cd cards && mvn clean package && cd ..
 cd loans && mvn clean package && cd ..
 cd configserver && mvn clean package && cd ..
+cd eurekaserver && mvn clean package && cd ..
+cd gatewayserver && mvn clean package && cd ..
 ```
 
 ## 🐳 Docker Deployment
 
 The project includes Docker Compose configurations for different environments.
+
+### Quick Start (Production Environment with Observability)
+
+The fastest way to run the complete stack:
+
+```bash
+# Navigate to production environment
+cd docker-compose/prod
+
+# Start all services (microservices + observability stack)
+docker-compose up -d
+
+# Check service status
+docker-compose ps
+
+# View logs
+docker-compose logs -f
+
+# Access the services
+# - Eureka Dashboard: http://localhost:8070
+# - Gateway Server: http://localhost:8072
+# - Grafana: http://localhost:3000
+# - Prometheus: http://localhost:9090
+
+# Stop all services
+docker-compose down
+```
 
 ### Build Docker Images
 
@@ -195,6 +296,12 @@ cd ../loans
 mvn compile jib:dockerBuild
 
 cd ../configserver
+mvn compile jib:dockerBuild
+
+cd ../eurekaserver
+mvn compile jib:dockerBuild
+
+cd ../gatewayserver
 mvn compile jib:dockerBuild
 ```
 
@@ -232,32 +339,67 @@ docker-compose logs -f [service-name]
 
 Once the services are running, access the Swagger UI documentation:
 
+### Direct Service Access
 - **Accounts API:** http://localhost:8081/swagger-ui/index.html
 - **Cards API:** http://localhost:8082/swagger-ui/index.html
 - **Loans API:** http://localhost:8083/swagger-ui/index.html
 
+### Via Gateway Server (Recommended)
+- **Accounts API:** http://localhost:8072/eazybank/accounts/swagger-ui/index.html
+- **Cards API:** http://localhost:8072/eazybank/cards/swagger-ui/index.html
+- **Loans API:** http://localhost:8072/eazybank/loans/swagger-ui/index.html
+
+### Service Discovery
+- **Eureka Dashboard:** http://localhost:8070/
+
+### Observability Stack
+- **Grafana:** http://localhost:3000/ (anonymous access enabled)
+- **Prometheus:** http://localhost:9090/
+- **Loki:** http://localhost:3100/
+- **Alloy:** http://localhost:12345/
+
 ### Sample API Endpoints
 
-#### Accounts Service
+#### Via Gateway Server
+All requests should be prefixed with `/eazybank/{service-name}/`:
+
 ```
+# Accounts Service
+POST   /eazybank/accounts/api/accounts              - Create new account
+GET    /eazybank/accounts/api/accounts?mobileNumber - Fetch account details
+PUT    /eazybank/accounts/api/accounts              - Update account
+DELETE /eazybank/accounts/api/accounts?mobileNumber - Delete account
+
+# Cards Service
+POST   /eazybank/cards/api/cards              - Create new card
+GET    /eazybank/cards/api/cards?mobileNumber - Fetch card details
+PUT    /eazybank/cards/api/cards              - Update card
+DELETE /eazybank/cards/api/cards?mobileNumber - Delete card
+
+# Loans Service
+POST   /eazybank/loans/api/loans              - Create new loan
+GET    /eazybank/loans/api/loans?mobileNumber - Fetch loan details
+PUT    /eazybank/loans/api/loans              - Update loan
+DELETE /eazybank/loans/api/loans?mobileNumber - Delete loan
+```
+
+#### Direct Service Access
+```
+# Accounts Service
 POST   /api/accounts              - Create new account
 GET    /api/accounts?mobileNumber - Fetch account details
 PUT    /api/accounts              - Update account
 DELETE /api/accounts?mobileNumber - Delete account
 GET    /api/accounts/build-info   - Get build information
 GET    /api/accounts/contact-info - Get contact information
-```
 
-#### Cards Service
-```
+# Cards Service
 POST   /api/cards              - Create new card
 GET    /api/cards?mobileNumber - Fetch card details
 PUT    /api/cards              - Update card
 DELETE /api/cards?mobileNumber - Delete card
-```
 
-#### Loans Service
-```
+# Loans Service
 POST   /api/loans              - Create new loan
 GET    /api/loans?mobileNumber - Fetch loan details
 PUT    /api/loans              - Update loan
@@ -351,7 +493,55 @@ spring:
 - Optimized resource allocation
 - Enhanced security
 
-## 📊 Monitoring and Health Checks
+## 📊 Monitoring and Observability
+
+### Observability Stack
+
+The production environment includes a comprehensive observability stack:
+
+#### Grafana
+- **URL:** http://localhost:3000
+- **Purpose:** Metrics visualization and dashboards
+- **Features:**
+  - Pre-configured datasources (Prometheus, Loki)
+  - Real-time metrics visualization
+  - Log aggregation views
+  - Anonymous access enabled for easy setup
+
+#### Prometheus
+- **URL:** http://localhost:9090
+- **Purpose:** Metrics collection and time-series database
+- **Features:**
+  - Service discovery integration
+  - Metrics scraping from Spring Actuator endpoints
+  - Alerting capabilities
+  - PromQL query language
+
+#### Loki
+- **Architecture:** Distributed (Read, Write, Backend, Gateway)
+- **Gateway URL:** http://localhost:3100
+- **Purpose:** Log aggregation and querying
+- **Features:**
+  - Distributed architecture for scalability
+  - MinIO backend for log storage
+  - LogQL query language
+  - Integration with Grafana
+
+#### Grafana Alloy
+- **URL:** http://localhost:12345
+- **Purpose:** Telemetry collection agent
+- **Features:**
+  - Docker log collection
+  - Automatic service discovery
+  - Log forwarding to Loki
+  - Lightweight and efficient
+
+#### MinIO
+- **Purpose:** Object storage for Loki data
+- **Features:**
+  - S3-compatible storage
+  - High-performance log storage
+  - Data persistence
 
 ### Spring Actuator Endpoints
 
@@ -361,15 +551,26 @@ All services expose Actuator endpoints for monitoring:
 http://localhost:8081/actuator/health       - Health status
 http://localhost:8081/actuator/info         - Application info
 http://localhost:8081/actuator/metrics      - Metrics
+http://localhost:8081/actuator/prometheus   - Prometheus metrics
 http://localhost:8081/actuator/env          - Environment properties
 ```
 
 ### Health Checks
 
-#### Config Server
+#### Config Server & Eureka Server
 ```yaml
 healthcheck:
   test: "curl --fail --silent localhost:8084/actuator/health/readiness | grep UP || exit 1"
+  interval: 10s
+  timeout: 5s
+  retries: 10
+  start_period: 5s
+```
+
+#### Microservices (Accounts, Cards, Loans)
+```yaml
+healthcheck:
+  test: "curl --fail --silent localhost:8081/actuator/health/readiness | grep UP || exit 1"
   interval: 10s
   timeout: 5s
   retries: 10
@@ -386,6 +587,24 @@ healthcheck:
   start_period: 10s
 ```
 
+#### Loki Components
+```yaml
+healthcheck:
+  test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1" ]
+  interval: 10s
+  timeout: 5s
+  retries: 5
+```
+
+#### Grafana
+```yaml
+healthcheck:
+  test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1" ]
+  interval: 10s
+  timeout: 5s
+  retries: 5
+```
+
 ### Liveness and Readiness Probes
 
 ```yaml
@@ -398,6 +617,10 @@ management:
   endpoint:
     health:
       probes:
+        enabled: true
+  metrics:
+    export:
+      prometheus:
         enabled: true
 ```
 
@@ -433,6 +656,12 @@ udemy_project1/
 ├── configserver/             # Config server
 │   ├── src/
 │   └── pom.xml
+├── eurekaserver/             # Eureka server (Service Discovery)
+│   ├── src/
+│   └── pom.xml
+├── gatewayserver/            # API Gateway
+│   ├── src/
+│   └── pom.xml
 ├── docker-compose/
 │   ├── default/
 │   │   ├── docker-compose.yml
@@ -440,9 +669,18 @@ udemy_project1/
 │   ├── qa/
 │   │   ├── docker-compose.yml
 │   │   └── common-config.yml
-│   └── prod/
-│       ├── docker-compose.yml
-│       └── common-config.yml
+│   ├── prod/
+│   │   ├── docker-compose.yml
+│   │   └── common-config.yml
+│   └── observability/
+│       ├── alloy/
+│       │   └── alloy-local-config.yaml
+│       ├── grafana/
+│       │   └── datasource.yml
+│       ├── loki/
+│       │   └── loki-config.yaml
+│       └── prometheus/
+│           └── prometheus.yml
 └── README.md
 ```
 
@@ -452,6 +690,94 @@ udemy_project1/
 - Config Server supports encryption for sensitive properties
 - All endpoints support validation with Jakarta Bean Validation
 - Spring Security can be integrated for authentication and authorization
+
+## 🔍 Observability Features
+
+### Distributed Log Aggregation with Loki
+
+The production environment uses Grafana Loki for centralized log management:
+
+**Architecture:**
+- **Loki Gateway** - Entry point for log ingestion and queries
+- **Loki Read** - Handles query requests
+- **Loki Write** - Handles log ingestion
+- **Loki Backend** - Background processing
+- **MinIO** - Object storage backend
+
+**Log Collection:**
+- Grafana Alloy automatically collects logs from all Docker containers
+- Logs are enriched with container metadata (name, labels)
+- Real-time log streaming and historical queries available
+
+**Access Logs:**
+```bash
+# Via Grafana (recommended)
+Open http://localhost:3000 → Explore → Select Loki datasource
+
+# Via LogQL queries
+{container="accounts-ms"}
+{container=~".*-ms"} |= "error"
+```
+
+### Metrics Collection with Prometheus
+
+**Features:**
+- Automatic service discovery via Docker labels
+- Scrapes Spring Actuator `/actuator/prometheus` endpoints
+- Time-series metrics storage
+- Integration with Grafana for visualization
+
+**Exposed Metrics:**
+- JVM metrics (memory, threads, garbage collection)
+- HTTP request metrics (rate, duration, errors)
+- Database connection pool metrics
+- Custom business metrics
+
+**Access Prometheus:**
+```
+http://localhost:9090
+```
+
+### Visualization with Grafana
+
+**Pre-configured Datasources:**
+- Prometheus - for metrics
+- Loki - for logs
+
+**Features:**
+- Anonymous access enabled for quick setup
+- Create custom dashboards
+- Set up alerts
+- Correlate logs and metrics
+
+**Quick Start Dashboards:**
+1. Import pre-built Spring Boot dashboards
+2. Create custom queries using PromQL and LogQL
+3. Set up alerts based on metrics thresholds
+
+### Service Discovery and Routing
+
+**Eureka Server:**
+- All microservices register automatically
+- Health status monitoring
+- Load balancing support
+- Real-time service registry
+
+**Access Eureka Dashboard:**
+```
+http://localhost:8070
+```
+
+**Gateway Server:**
+- Single entry point for all services
+- Path-based routing: `/eazybank/{service-name}/**`
+- Load balancing across service instances
+- Circuit breaker patterns
+
+**Access via Gateway:**
+```
+http://localhost:8072/eazybank/{service}/api/{endpoint}
+```
 
 ## 🛠️ Troubleshooting
 
@@ -467,14 +793,39 @@ udemy_project1/
    - Check the Config Server URL in application.yml
    - Verify `spring.config.import` is set correctly
 
-3. **Port already in use:**
-   - Check if ports 8081-8084 are available
-   - Stop any existing services using these ports
+3. **Service not registering with Eureka:**
+   - Verify Eureka Server is running at http://localhost:8070
+   - Check `eureka.client.serviceUrl.defaultZone` configuration
+   - Ensure network connectivity between services
+   - Check Eureka dashboard for registered services
 
-4. **Docker container health check failing:**
+4. **Gateway routing issues:**
+   - Verify Gateway Server is running at http://localhost:8072
+   - Check route configurations in Gateway application
+   - Ensure services are registered with Eureka
+   - Test direct service access first, then via gateway
+
+5. **Port already in use:**
+   - Check if ports 8070-8084, 3000, 9090, 3100, 12345 are available
+   - Stop any existing services using these ports
+   - Use `lsof -i :<port>` on macOS/Linux or `netstat -ano | findstr :<port>` on Windows
+
+6. **Docker container health check failing:**
    - Check Docker logs: `docker logs <container-name>`
    - Verify database is ready before service starts
    - Increase `start_period` in health check configuration
+   - Check service dependencies and startup order
+
+7. **Grafana datasource provisioning error:**
+   - Ensure `datasource.yml` is a file, not a directory
+   - Check volume mount paths in docker-compose.yml
+   - Verify file permissions on host machine
+
+8. **Loki not receiving logs:**
+   - Check Alloy configuration and container logs
+   - Verify Docker socket is mounted correctly
+   - Check Loki gateway is accessible at port 3100
+   - Ensure MinIO is running and healthy
 
 ## 📝 Development Guidelines
 
@@ -522,10 +873,12 @@ This project is created for educational purposes as part of learning microservic
 
 - **Docker Hub:** dheerajbr46
 - **Images:** 
-  - dheerajbr46/accounts:s7
-  - dheerajbr46/cards:s7
-  - dheerajbr46/loans:s7
-  - dheerajbr46/configserver:s7
+  - dheerajbr46/accounts:s11
+  - dheerajbr46/cards:s11
+  - dheerajbr46/loans:s11
+  - dheerajbr46/configserver:s11
+  - dheerajbr46/eurekaserver:s11
+  - dheerajbr46/gatewayserver:s11
 
 ## 📞 Support
 

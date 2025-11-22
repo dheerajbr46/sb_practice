@@ -35,6 +35,10 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-config</artifactId>
@@ -97,7 +101,7 @@
                 <version>3.4.6</version>
                 <configuration>
                     <to>
-                        <image>dheerajbr46/${project.artifactId}:s10</image>
+                        <image>dheerajbr46/${project.artifactId}:s11</image>
                     </to>
                 </configuration>
             </plugin>

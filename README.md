@@ -781,51 +781,116 @@ http://localhost:8072/eazybank/{service}/api/{endpoint}
 
 ## 🛠️ Troubleshooting
 
-### Common Issues
+This project includes targeted troubleshooting for issues commonly observed while running the stack locally or in Docker. Below are several focused issues and steps to resolve them.
 
-1. **Database tables not created:**
-   - Ensure `spring.jpa.show-sql=true` and `spring.sql.init.mode=always` are set
-   - Check database connection credentials
-   - Verify schema.sql file exists in resources
+### Database tables not created (common causes)
 
-2. **Config Server connection failed:**
-   - Ensure Config Server is running before starting other services
-   - Check the Config Server URL in application.yml
-   - Verify `spring.config.import` is set correctly
+Symptoms:
+- No tables are created on startup or entities are not persisted.
 
-3. **Service not registering with Eureka:**
-   - Verify Eureka Server is running at http://localhost:8070
-   - Check `eureka.client.serviceUrl.defaultZone` configuration
-   - Ensure network connectivity between services
-   - Check Eureka dashboard for registered services
+Checks and fixes:
+- Verify `spring.datasource.*` properties are correct and point to the intended DB.
+- For development, enable automatic schema updates (only for local/dev):
 
-4. **Gateway routing issues:**
-   - Verify Gateway Server is running at http://localhost:8072
-   - Check route configurations in Gateway application
-   - Ensure services are registered with Eureka
-   - Test direct service access first, then via gateway
+```yaml
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+  sql:
+    init:
+      mode: always
+```
 
-5. **Port already in use:**
-   - Check if ports 8070-8084, 3000, 9090, 3100, 12345 are available
-   - Stop any existing services using these ports
-   - Use `lsof -i :<port>` on macOS/Linux or `netstat -ano | findstr :<port>` on Windows
+- If you rely on `schema.sql`, ensure the file exists under `src/main/resources` and `spring.sql.init.mode=always`.
+- Check application logs for SQL errors, permissions, or missing database errors.
+- In Docker, ensure the DB container is fully healthy before the service starts (use `start_period` or a wait-for script).
 
-6. **Docker container health check failing:**
-   - Check Docker logs: `docker logs <container-name>`
-   - Verify database is ready before service starts
-   - Increase `start_period` in health check configuration
-   - Check service dependencies and startup order
+### Grafana datasource provisioning error: "is a directory"
 
-7. **Grafana datasource provisioning error:**
-   - Ensure `datasource.yml` is a file, not a directory
-   - Check volume mount paths in docker-compose.yml
-   - Verify file permissions on host machine
+Error:
+```
+Datasource provisioning error: read /etc/grafana/provisioning/datasources/datasource.yml: is a directory
+```
 
-8. **Loki not receiving logs:**
-   - Check Alloy configuration and container logs
-   - Verify Docker socket is mounted correctly
-   - Check Loki gateway is accessible at port 3100
-   - Ensure MinIO is running and healthy
+Cause & Fix:
+- The docker-compose volume mounts a directory where Grafana expects a single file. Mount the single YAML file instead:
+  - Wrong: `- ./docker-config/grafana/provisioning/datasources/:/etc/grafana/provisioning/datasources/`
+  - Right: `- ./docker-config/grafana/provisioning/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml`
+- Confirm the host path is a file and readable by Grafana.
+
+### Tempo config parsing error: "is a directory"
+
+Error:
+```
+failed parsing config: failed to read configFile /etc/tempo-config.yml: read /etc/tempo-config.yml: is a directory
+```
+
+Cause & Fix:
+- Ensure the volume mount points to a file, not a directory. Adjust docker-compose to mount the single config file, or change the container's config path to point to a directory-based config if supported.
+
+### NoResourceFoundException from ResourceWebHandler (Gateway / static resources)
+
+Error snippet:
+```
+org.springframework.web.reactive.resource.NoResourceFoundException: 404 NOT_FOUND "No static resource eazybank/loans/api/loans/create."
+```
+
+Cause:
+- The request was treated as a static resource request by Spring's resource handler instead of being routed to the microservice (often due to gateway path rewriting or resource mapping collisions).
+
+Fixes:
+- Verify Gateway route configuration — ensure `/eazybank/loans/**` is routed to the loans service and the path is rewritten or preserved correctly.
+- Test direct service access (bypass gateway) to validate the endpoint works: `POST http://localhost:8083/api/loans`.
+- Check `spring.resources.add-mappings` or WebFlux resource handler configuration to exclude `/eazybank/**` or `/api/**` from static resource handling.
+
+### Auditing warning on `getCurrentAuditor`
+
+Symptom:
+- Warnings or issues related to the `AuditorAware` implementation.
+
+Recommended fix:
+- Implement `AuditorAware<String>` and make `getCurrentAuditor()` return an `Optional<String>`.
+
+Example:
+```java
+@Component("auditorAware")
+public class AuditorAwareImpl implements AuditorAware<String> {
+    @Override
+    public Optional<String> getCurrentAuditor() {
+        // Return the authenticated username or a default value
+        return Optional.ofNullable(SecurityContextHolder.getContext().getAuthentication())
+                       .map(auth -> auth.getName());
+    }
+}
+```
+- Enable auditing: `@EnableJpaAuditing(auditorAwareRef = "auditorAware")` in a configuration class.
+
+### Validating a 10-digit phone number (server-side)
+
+Use this regex for digits-only 10-digit numbers:
+```
+^[0-9]{10}$
+```
+Usage example with Jakarta Validation:
+```java
+@Pattern(regexp = "^[0-9]{10}$", message = "Mobile number must be 10 digits")
+private String mobileNumber;
+```
+
+### Masking sensitive values for logs
+
+- Avoid logging full PIIs. Mask before logging, for example:
+```java
+public static String maskPhone(String phone) {
+    if (phone == null || phone.length() < 4) return "****";
+    return "******" + phone.substring(phone.length() - 4);
+}
+```
+
+### Docker Compose health checks and ordering
+
+- Ensure database containers are healthy before microservices attempt to connect. Use `start_period` or application-level retry logic.
 
 ## 📝 Development Guidelines
 
@@ -891,4 +956,3 @@ For issues and questions:
 ---
 
 **Happy Coding! 🚀**
-

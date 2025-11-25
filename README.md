@@ -1,5 +1,7 @@
 # EazyBank Microservices Project
 
+*Last Updated: November 25, 2025*
+
 A cloud-native microservices architecture for a banking application built with Spring Boot and Spring Cloud, featuring accounts, cards, and loans management services.
 
 ## 📋 Table of Contents
@@ -50,6 +52,7 @@ The project demonstrates enterprise-grade microservices architecture patterns in
 - ✅ **Metrics Collection** - Prometheus with Spring Actuator integration
 - ✅ **Visualization** - Grafana dashboards for metrics and logs
 - ✅ **Log Aggregation** - Grafana Alloy for automatic Docker log collection
+- ✅ **Distributed Tracing** - Tempo for end-to-end request tracing with OpenTelemetry
 - ✅ **Health Checks** - Comprehensive readiness and liveness probes
 
 ### Data Management
@@ -77,7 +80,7 @@ The project demonstrates enterprise-grade microservices architecture patterns in
 
 ## 🏗️ Architecture
 
-The system consists of four main microservices:
+The system consists of five main microservices:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -87,15 +90,15 @@ The system consists of four main microservices:
                           │
           ┌───────────────┼───────────────┐
           │               │               │
-┌─────────▼────────┐ ┌───▼──────┐ ┌─────▼──────┐
-│   Accounts       │ │  Cards    │ │   Loans    │
-│  (Port: 8081)    │ │(Port:8082)│ │(Port: 8083)│
-└──────────────────┘ └───────────┘ └────────────┘
-          │               │               │
-┌─────────▼────────┐ ┌───▼──────┐ ┌─────▼──────┐
-│  AccountsDB      │ │ CardsDB   │ │  LoansDB   │
-│  (Port: 3306)    │ │(Port:3308)│ │(Port: 3307)│
-└──────────────────┘ └───────────┘ └────────────┘
+┌─────────▼────────┐ ┌───▼──────┐ ┌─────▼──────┐ ┌─────▼──────┐
+│   Accounts       │ │  Cards    │ │   Loans    │ │  Message   │
+│  (Port: 8081)    │ │(Port:8082)│ │(Port: 8083)│ │(Port: 8085)│
+└──────────────────┘ └───────────┘ └────────────┘ └────────────┘
+          │               │               │               │
+┌─────────▼────────┐ ┌───▼──────┐ ┌─────▼──────┐ ┌─────▼──────┐
+│  AccountsDB      │ │ CardsDB   │ │  LoansDB   │ │   (No DB)   │
+│  (Port: 3306)    │ │(Port:3308)│ │(Port: 3307)│ │             │
+└──────────────────┘ └───────────┘ └────────────┘ └────────────┘
 ```
 
 ## 🔧 Microservices
@@ -139,6 +142,15 @@ The system consists of four main microservices:
   - Outstanding amount tracking
   - Payment history
 
+### 5. Message Service
+- **Port:** 8085
+- **Purpose:** Handles communication notifications
+- **Features:**
+  - Email notifications using Spring Cloud Function
+  - SMS notifications with account number extraction
+  - Functional interfaces for message processing
+  - Logging of message details
+
 ## 💻 Technologies Used
 
 ### Core Framework
@@ -170,6 +182,7 @@ The system consists of four main microservices:
 - **Loki 3.1.2** - Log aggregation system
 - **Grafana Alloy 1.5.1** - Telemetry collection agent
 - **MinIO** - Object storage for Loki
+- **Tempo** - Distributed tracing with OpenTelemetry
 
 ### Documentation
 - **SpringDoc OpenAPI 2.8.14** - API documentation (Swagger UI)
@@ -177,6 +190,13 @@ The system consists of four main microservices:
 ### Development Tools
 - **Lombok** - Reduce boilerplate code
 - **Spring DevTools** - Hot reload during development
+
+### Security & Authentication
+- **Keycloak** - Identity and access management
+- **Spring Security** - Authentication and authorization
+
+### Messaging
+- **Apache Kafka** - Distributed event streaming platform
 
 ## 📦 Prerequisites
 
@@ -231,6 +251,9 @@ Before running this project, ensure you have the following installed:
    
    cd loans
    mvn spring-boot:run
+
+   cd message
+   mvn spring-boot:run
    ```
    
    **Step 4: Start Gateway Server**
@@ -249,6 +272,7 @@ cd loans && mvn clean package && cd ..
 cd configserver && mvn clean package && cd ..
 cd eurekaserver && mvn clean package && cd ..
 cd gatewayserver && mvn clean package && cd ..
+cd message && mvn clean package && cd ..
 ```
 
 ## 🐳 Docker Deployment
@@ -277,6 +301,7 @@ docker-compose logs -f
 # - Gateway Server: http://localhost:8072
 # - Grafana: http://localhost:3000
 # - Prometheus: http://localhost:9090
+# - Keycloak: http://localhost:8080
 
 # Stop all services
 docker-compose down
@@ -302,6 +327,9 @@ cd ../eurekaserver
 mvn compile jib:dockerBuild
 
 cd ../gatewayserver
+mvn compile jib:dockerBuild
+
+cd ../message
 mvn compile jib:dockerBuild
 ```
 
@@ -343,11 +371,13 @@ Once the services are running, access the Swagger UI documentation:
 - **Accounts API:** http://localhost:8081/swagger-ui/index.html
 - **Cards API:** http://localhost:8082/swagger-ui/index.html
 - **Loans API:** http://localhost:8083/swagger-ui/index.html
+- **Message API:** http://localhost:8085/swagger-ui/index.html
 
 ### Via Gateway Server (Recommended)
 - **Accounts API:** http://localhost:8072/eazybank/accounts/swagger-ui/index.html
 - **Cards API:** http://localhost:8072/eazybank/cards/swagger-ui/index.html
 - **Loans API:** http://localhost:8072/eazybank/loans/swagger-ui/index.html
+- **Message API:** http://localhost:8072/eazybank/message/swagger-ui/index.html
 
 ### Service Discovery
 - **Eureka Dashboard:** http://localhost:8070/
@@ -381,6 +411,10 @@ POST   /eazybank/loans/api/loans              - Create new loan
 GET    /eazybank/loans/api/loans?mobileNumber - Fetch loan details
 PUT    /eazybank/loans/api/loans              - Update loan
 DELETE /eazybank/loans/api/loans?mobileNumber - Delete loan
+
+# Message Service
+POST   /eazybank/message/api/messages              - Send new message
+GET    /eazybank/message/api/messages?accountNumber - Fetch message details
 ```
 
 #### Direct Service Access
@@ -404,6 +438,10 @@ POST   /api/loans              - Create new loan
 GET    /api/loans?mobileNumber - Fetch loan details
 PUT    /api/loans              - Update loan
 DELETE /api/loans?mobileNumber - Delete loan
+
+# Message Service
+POST   /api/messages              - Send new message
+GET    /api/messages?accountNumber - Fetch message details
 ```
 
 ## ⚙️ Configuration Management
@@ -419,6 +457,7 @@ Each microservice has its own configuration file in the config repository:
 - `accounts.yml` / `accounts-{profile}.yml`
 - `cards.yml` / `cards-{profile}.yml`
 - `loans.yml` / `loans-{profile}.yml`
+- `message.yml` / `message-{profile}.yml`
 
 ### Encryption Key
 The Config Server supports encrypted properties using the key defined in `application.yml`:
@@ -543,6 +582,14 @@ The production environment includes a comprehensive observability stack:
   - High-performance log storage
   - Data persistence
 
+#### Tempo
+- **URL:** http://localhost:3200
+- **Purpose:** Distributed tracing
+- **Features:**
+  - End-to-end request tracing
+  - Integration with OpenTelemetry
+  - Trace visualization in Grafana
+
 ### Spring Actuator Endpoints
 
 All services expose Actuator endpoints for monitoring:
@@ -653,6 +700,19 @@ udemy_project1/
 ├── loans/                    # Loans microservice
 │   ├── src/
 │   └── pom.xml
+├── message/                  # Message microservice
+│   ├── src/
+│   │   ├── main/
+│   │   │   ├── java/
+│   │   │   │   └── com/eazybytes/message/
+│   │   │   │       ├── functions/
+│   │   │   │       │   └── MessageFunctions.java
+│   │   │   │       └── dto/
+│   │   │   │           └── AccountsMessageDto.java
+│   │   │   └── resources/
+│   │   │       └── application.yml
+│   │   └── test/
+│   └── pom.xml
 ├── configserver/             # Config server
 │   ├── src/
 │   └── pom.xml
@@ -754,6 +814,18 @@ http://localhost:9090
 1. Import pre-built Spring Boot dashboards
 2. Create custom queries using PromQL and LogQL
 3. Set up alerts based on metrics thresholds
+
+### Distributed Tracing with Tempo
+
+**Features:**
+- End-to-end request tracing
+- Integration with OpenTelemetry
+- Trace visualization in Grafana
+
+**Access Tempo:**
+```
+http://localhost:3200
+```
 
 ### Service Discovery and Routing
 
@@ -891,6 +963,23 @@ public static String maskPhone(String phone) {
 ### Docker Compose health checks and ordering
 
 - Ensure database containers are healthy before microservices attempt to connect. Use `start_period` or application-level retry logic.
+
+### Spring Cloud Function error: "Failed to locate function 'sms'"
+
+Error:
+```
+Failed to locate function 'sms' for function definition 'sms'. Returning null.
+```
+
+Cause:
+- This occurs when Spring Cloud Function cannot resolve the 'sms' function bean, often due to configuration issues or when invoking via HTTP/messaging without proper setup.
+
+Fixes:
+- Ensure the `MessageFunctions` configuration class is scanned and the `sms` bean is registered.
+- If using `spring.cloud.function.definition=sms`, confirm it's set correctly.
+- For HTTP invocation (e.g., POST to `/function/sms`), verify the function is exposed. The error may log but not prevent direct bean usage.
+- Check for bean name conflicts or conditional annotations blocking registration.
+- Add logging to confirm bean creation: `logger.info("SMS function bean registered");` in the `@Bean` method.
 
 ## 📝 Development Guidelines
 

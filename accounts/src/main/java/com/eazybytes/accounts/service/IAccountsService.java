@@ -29,4 +29,11 @@ public interface IAccountsService {
      * @return true if the deletion was successful, false otherwise
      */
     boolean deleteAccount(String mobileNumber);
+
+    /**
+     * Update communication status for the given account number.
+     * @param accountNumber the account number
+     * @return true if the update was successful, false otherwise
+     */
+    boolean updateCommunicationStatus(Long accountNumber);
 }

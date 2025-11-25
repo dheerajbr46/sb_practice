@@ -120,7 +120,7 @@
                 <version>3.4.6</version>
                 <configuration>
                     <to>
-                        <image>dheerajbr46/${project.artifactId}:s12</image>
+                        <image>dheerajbr46/${project.artifactId}:s14</image>
                     </to>
                 </configuration>
             </plugin>

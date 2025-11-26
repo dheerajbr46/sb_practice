@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cards-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 700Mi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: cards-mysql-statefulset
+spec:
+  serviceName: cards-mysql-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cards-mysql
+  template:
+    metadata:
+      labels:
+        app: cards-mysql
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:8.0
+        ports:
+        - containerPort: 3306
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: eazybank-configmap
+              key: MYSQL_ROOT_PASSWORD
+        - name: MYSQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: eazybank-configmap
+              key: MYSQL_DATABASE_CARDS
+        volumeMounts:
+        - name: mysql-storage
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mysql-storage
+        persistentVolumeClaim:
+          claimName: cards-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cardsdb
+spec:
+  selector:
+    app: cards-mysql
+  ports:
+  - port: 3308
+    targetPort: 3306
+  type: ClusterIP

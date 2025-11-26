@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: loans-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 700Mi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: loans-mysql-statefulset
+spec:
+  serviceName: loans-mysql-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loans-mysql
+  template:
+    metadata:
+      labels:
+        app: loans-mysql
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:8.0
+        ports:
+        - containerPort: 3306
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: eazybank-configmap
+              key: MYSQL_ROOT_PASSWORD
+        - name: MYSQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: eazybank-configmap
+              key: MYSQL_DATABASE_LOANS
+        volumeMounts:
+        - name: mysql-storage
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mysql-storage
+        persistentVolumeClaim:
+          claimName: loans-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: loansdb
+spec:
+  selector:
+    app: loans-mysql
+  ports:
+  - port: 3307
+    targetPort: 3306
+  type: ClusterIP

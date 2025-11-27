@@ -1,0 +1,21 @@
+# Default values for accounts-db.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+storage:
+  size: 700Mi
+  accessMode: ReadWriteOnce
+
+image:
+  repository: mysql
+  tag: "8.0"
+
+containerPort: 3306
+
+service:
+  name: accountsdb
+  type: ClusterIP
+  port: 3306
+  targetPort: 3306
+
+databaseKey: MYSQL_DATABASE_ACCOUNTS

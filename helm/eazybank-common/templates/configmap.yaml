@@ -1,0 +1,25 @@
+{{- define "common.configmap" -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.global.configMapName }}
+data:
+  SPRING_PROFILES_ACTIVE: {{ .Values.global.activeProfile }}
+  SPRING_CONFIG_IMPORT: {{ .Values.global.configServerURL }}
+  EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: {{ .Values.global.eurekaServerURL }}
+  SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK-SET-URI: {{ .Values.global.keyCloakURL }}
+  JAVA_TOOL_OPTIONS: {{ .Values.global.openTelemetryJavaAgent }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.global.otelExporterEndPoint }}
+  OTEL_METRICS_EXPORTER: {{ .Values.global.otelMetricsExporter }}
+  OTEL_LOGS_EXPORTER: {{ .Values.global.otelLogsExporter }}
+  SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: {{ .Values.global.kafkaBrokerURL }}
+  ACCOUNTS_SPRING_DATASOURCE_URL: {{ .Values.global.accountsDatasourceUrl }}
+  CARDS_SPRING_DATASOURCE_URL: {{ .Values.global.cardsDatasourceUrl }}
+  LOANS_SPRING_DATASOURCE_URL: {{ .Values.global.loansDatasourceUrl }}
+  SPRING_DATASOURCE_USERNAME: {{ .Values.global.datasourceUsername }}
+  SPRING_DATASOURCE_PASSWORD: {{ .Values.global.datasourcePassword }}
+  MYSQL_ROOT_PASSWORD: {{ .Values.global.mysqlRootPassword }}
+  MYSQL_DATABASE_ACCOUNTS: {{ .Values.global.mysqlDatabaseAccounts }}
+  MYSQL_DATABASE_CARDS: {{ .Values.global.mysqlDatabaseCards }}
+  MYSQL_DATABASE_LOANS: {{ .Values.global.mysqlDatabaseLoans }}
+{{- end -}}
